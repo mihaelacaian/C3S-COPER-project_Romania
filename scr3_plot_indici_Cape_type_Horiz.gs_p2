@@ -1,0 +1,120 @@
+
+'open Indici_2015.ctl'
+'set t 1 32'
+'set parea 3 8.5 3 7'
+*'set xlabs 00|03|06|09|12|15|18|00|03|06|09|12|15|18|00|00|03|06|09|12|15|18|00|00|03|06|09|12|15|18|00|'
+'set xlabs 00|12|00|12|00|12|00|12|00'
+
+x0=1.8
+y0=7.5
+dx=0.6
+del=0.3
+
+sz1=0.12
+sz2=0.15
+fac=10
+
+'set cthick 12'
+
+'set grads off'
+cc=1
+'set ccolor 'cc
+ind=1
+x00=x0+ind*dx
+y00=y0
+'d ts'
+'set string 'cc' l 10 0'
+'set strsiz 'sz1' 'sz2
+'draw string 'x00' 'y00' ts'
+
+'set grads off'
+cc=3
+'set ccolor 'cc
+ind=2
+'d ds'
+x00=x0+ind*dx
+y00=y0
+'set string 1 l 10 0'
+'set string 'cc' l 10 0'
+'set strsiz 'sz1' 'sz2
+'draw string 'x00' 'y00' ds'
+
+'set grads off'
+cc=7
+'set ccolor 'cc
+ind=3
+'d thes'
+x00=x0+ind*dx
+y00=y0
+'set string 'cc' l 10 0'
+'set strsiz 'sz1' 'sz2
+'draw string 'x00' 'y00' thes'
+
+'set grads off'
+cc=8
+'set ccolor 'cc
+ind=4
+'d pw'
+x00=x0+ind*dx
+y00=y0
+'set string 'cc' l 10 0'
+'set strsiz 'sz1' 'sz2
+'draw string 'x00' 'y00' pw'
+
+'set grads off'
+cc=5
+'set ccolor 'cc
+ind=5
+'d capes'
+x00=x0+ind*dx
+y00=y0
+'set string 'cc' l 10 0'
+'set strsiz 'sz1' 'sz2
+'draw string 'x00' 'y00' capes'
+
+'set grads off'
+cc=4
+'set ccolor 'cc
+ind=6
+x00=x0+ind*dx+del
+y00=y0
+'d capex'
+'set string 'cc' l 10 0'
+'set strsiz 'sz1' 'sz2
+'draw string 'x00' 'y00' capex'
+
+'set grads off'
+cc=9
+'set ccolor 'cc
+ind=7
+x00=x0+ind*dx+del
+y00=y0
+'d h*'fac
+'set string 'cc' l 10 0'
+'set strsiz 'sz1' 'sz2
+'draw string 'x00' 'y00' h*'fac
+
+'set grads off'
+cc=14
+'set ccolor 'cc
+ind=8
+x00=x0+ind*dx+del
+y00=y0
+'d srh*'fac 
+'set string 'cc' l 10 0'
+'set strsiz 'sz1' 'sz2
+'draw string 'x00' 'y00' srh*'fac
+
+'set grads off'
+cc=10
+'set ccolor 'cc
+ind=9
+x00=x0+ind*dx+0.2+del
+y00=y0
+'d srs*'fac 
+'set string 'cc' l 10 0'
+'set strsiz 'sz1' 'sz2
+'draw string 'x00' 'y00' srs*'fac
+
+*'printim PRINT3/pr_Instab_CIN.jpg white'
+******************************88
