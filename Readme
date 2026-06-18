@@ -1,1 +1,3 @@
-inidicatori de instabilitate Convectiva
+Code to process extended (seasonal-decadal) forecasts from C3S at regional scale: 
+- Downscaling (dynamical and AI) 
+- Regional specific indicators computation
