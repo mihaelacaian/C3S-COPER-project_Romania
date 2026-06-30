@@ -1,0 +1,344 @@
+#######################
+dir0='/home/mihaela/DD_downscalling/EXPER/SEZON_Ecmwf'
+#dir_rule=${dir0}/SCR
+fa_rule=rule_sezon3
+dauxil=${dir0}/SCR/Auxil
+
+listmem=' 0  1 2 3'
+
+dds='01'
+freqcpl=12
+nlon=261
+
+###############################################################
+
+mmss=`expr ${mms} + 100 | cut -c2-3 `
+dcpl0=${dir0}/Cuplaje/BASE_${yys}/Base_${yys}${mmss}${dds}
+out0_fin3=/home/mihaela/DD_downscalling/EXPER/SEZON_Ecmwf/Cuplaje/GLOBEDAT/ERAIN_MEAN/XXXX
+rm -rf ${out0_fin3}/*
+####################################
+mms=`expr ${mms} + 100 | cut -c2-3 `
+mm1=`expr ${mms} + 100 | cut -c2-3 `
+
+mm2=`expr ${mms} + 1 + 100 | cut -c2-3 `
+if [ ${mm2} -ge 13 ] ; then
+mm2=`expr ${mm2} - 12 + 100 | cut -c2-3 `
+fi
+
+mm3=`expr ${mms} + 2 + 100 | cut -c2-3 `
+if [ ${mm3} -ge 13 ] ; then
+mm3=`expr ${mm3} - 12 + 100 | cut -c2-3 `
+fi
+
+mm4=`expr ${mms} + 3 + 100 | cut -c2-3 `
+if [ ${mm4} -ge 13 ] ; then
+mm4=`expr ${mm4} - 12 + 100 | cut -c2-3 `
+fi
+
+mm5=`expr ${mms} + 4 + 100 | cut -c2-3 `
+if [ ${mm5} -ge 13 ] ; then
+mm5=`expr ${mm5} - 12 + 100 | cut -c2-3 `
+fi
+
+mm6=`expr ${mms} + 5 + 100 | cut -c2-3 `
+if [ ${mm6} -ge 13 ] ; then
+mm6=`expr ${mm6} - 12 + 100 | cut -c2-3 `
+fi
+
+
+dats=${yys}${mms}${dds}
+
+dwkall=${dcpl0}/tmp_ungrib_base
+\rm -rf ${dwkall}
+mkdir -p ${dwkall}
+
+#for mm in ${listmonth} ; do
+for mm in ${mm1} ${mm2} ${mm3} ${mm4} ${mm5} ${mm6} ; do
+mm=`expr ${mm} + 100 | cut -c2-3 `
+cd ${dwkall}
+
+yyi=`expr ${yys} \/ 4 \* 4 `
+yyr=`expr ${yys} - ${yyi}  `
+if [ ${yyr} -eq 0 ] ; then
+nf1=29
+else
+nf1=28
+fi
+yysp1=`expr ${yys} + 1 `
+yyi=`expr ${yysp1} \/ 4 \* 4 `
+yyr=`expr ${yysp1} - ${yyi}  `
+if [ ${yyr} -eq 0 ] ; then
+nf2=29
+else
+nf2=28
+fi
+
+case ${mms} in \
+ 01) ndx='31 28 31 30 31 30 31';;
+ 02) ndx='28 31 30 31 30 31 31';;
+ 03) ndx='31 30 31 30 31 31 30';;
+ 04) ndx='30 31 30 31 31 30 31';;
+ 05) ndx='31 30 31 31 30 31 30';;
+ 06) ndx='30 31 31 30 31 30 31';;
+ 07) ndx='31 31 30 31 30 31 31';;
+ 08) ndx='31 30 31 30 31 31 28';;
+ 09) ndx='30 31 30 31 31 28 31';;
+ 10) ndx='31 30 31 31 28 31 30';;
+ 11) ndx='30 31 31 28 31 30 31';;
+ 12) ndx='31 31 28 31 30 31 30';;
+esac
+
+if [ ${nf1} -eq 29 ] ; then
+if [ ${mms} -eq 1 ] ; then
+ ndx='31 29 31 30 31 30 31'
+elif [ ${mms} -eq 2 ] ; then
+ ndx='29 31 30 31 30 31 31'
+fi
+fi
+
+if [ ${nf2} -eq 29 ] ; then
+if [ ${mms} -eq 8 ] ; then
+ ndx='31 30 31 30 31 31 29'
+elif [ ${mms} -eq 9 ] ; then
+ ndx='30 31 30 31 31 29 31'
+elif [ ${mms} -eq 10 ] ; then
+ ndx='31 30 31 31 29 31 30'
+elif [ ${mms} -eq 11 ] ; then
+ ndx='30 31 31 29 31 30 31'
+elif [ ${mms} -eq 12 ] ; then
+ ndx='31 31 29 31 30 31 30'
+fi
+fi
+
+echo "ndx=" ${ndx}
+
+# degribbing done once for ALL members; output per months in ${dwk}
+
+facpl=R1L${mm1}${dds}0000${mm}______1
+echo "################ month=" ${mm} ", file=" ${dcpl0}/${facpl} " ################"
+echo "################ grib_filter in:" ${dauxil}/${fa_rule} ################"
+echo "output in $dwkall: " ${dwkall} "PWD=" ${PWD}
+     grib_filter ${dauxil}/${fa_rule} ${dcpl0}/${facpl}
+done
+
+##############################################################################
+for mm in ${mm1} ${mm2} ${mm3} ${mm4} ${mm5} ${mm6}  ; do
+#${listmonth} ; do
+
+mm=`expr ${mm} + 100 | cut -c2-3 `
+mmp1=`expr ${mm} + 101 | cut -c2-3 `
+if [ ${mmp1} -gt 12 ] ; then
+mmp1=`expr ${mmp1} - 12 `
+mmp1=`expr ${mmp1} + 100 | cut -c2-3 `
+fi
+
+indmm=`expr ${mm} - ${mms} + 1 `
+if [ ${indmm} -le 0 ] ; then
+inddmm=`expr 12 + ${mms} - ${mm} + 1 `
+fi
+
+dwk=${dcpl0}/tmp_ungrib_mth${mm}
+\rm -rf ${dwk}
+mkdir -p ${dwk}
+
+
+#case ${mm} in \
+#    ${mm1}) hhs=0; hhe=732;;
+#    ${mm2}) hhs=744; hhe=1476;;
+#    ${mm3}) hhs=1488; hhe=2220;;
+#    ${mm4}) hhs=2232; hhe=2964;;
+#    ${mm4}) hhs=2976; hhe=3708;;
+#    ${mm6}) hhs=3720; hhe=4416;;
+#esac
+
+
+#if [ ${mms} -eq 6 ] ; then
+#case ${mm} in \
+#    ${mm1}) hhs=0; hhe=708;;
+#    ${mm2}) hhs=720; hhe=1452;;
+#    ${mm3}) hhs=1464; hhe=2196;;
+#    ${mm4}) hhs=2208; hhe=2940;;
+#    ${mm4}) hhs=2952; hhe=3684;;
+#    ${mm6}) hhs=3696; hhe=4392;;
+#esac
+#fi
+
+echo "MC: indmm=" ${indmm}
+
+ind=1
+hhstart=0
+for nd in ${ndx} ; do
+    hhend=` expr ${hhstart} + 24 \* ${nd} - ${freqcpl} `
+    if [ ${indmm} -eq ${ind} ] ; then
+      hhs=${hhstart}
+      hhe=${hhend}
+echo "MC: indmm=" ${indmm} "ind=" ${ind} "hhs,hhe=" ${hhs} ${hhe}
+    fi
+    ind=`expr ${ind} + 1 `
+    hhstart=` expr ${hhend} + ${freqcpl} `
+done
+
+echo "MC: ###########################################################"
+echo "Month=" ${mm} ", hh INTERVAL=" ${hhs} ${hhe}
+########################################################################
+########################################################################
+
+outnc=${dwk}/netcdf
+out_fin1=${dcpl0}/Out_month_${mm}/NEW3
+mkdir -p ${outnc} ${out_fin1}
+
+cd ${dwk}
+# degribbing done once for ALL members; output per months in ${dwk}
+
+#facpl=R1L${mm1}${dds}0000${mm}______1
+#  echo "################ month=" ${mm} ", file=" ${facpl} " ################"
+#\rm *grib
+#     grib_filter ${dir_rule}/${fa_rule} ${dcpl0}/${facpl}
+
+for mem in ${listmem} ; do
+
+outncmem=${outnc}/Mem_${mem}
+out_fin2=${out_fin1}/Mem_${mem}
+out_fin3=${out0_fin3}/Mem_${mem}
+\rm -rf ${out_fin2} 
+outnc1=${outncmem}/Grid_Europe
+outnc2=${outncmem}/Grid_QBO
+mkdir -p ${outnc1} ${outnc2} ${out_fin2} ${out_fin3}
+\rm -f  ${out_fin2}/*
+
+cd ${outncmem}
+
+hh=${hhs}
+while [ ${hh} -le ${hhe} ] ; do
+for var in t q u v z stl1 ; do
+#for var in stl1 ; do
+listlevs='10 50 100 200 300 400 500 700 850 925 1000'
+isol=0
+case ${var} in \
+   stl1) isol=1; listlevs='0';;
+esac
+
+ngrd=1
+case ${var} in \
+   u) ngrd=3;;
+esac
+
+for lev in ${listlevs} ; do
+fa=${var}_${dats}_${lev}mb_hh${hh}_mem${mem}_${nlon}
+
+#grib_to_netcdf -o \
+#   ${outnc1}/${var}_${dats}_${lev}mb_hh${hh}_mem${mem}_mth${mm}.nc_tmp \
+#                  ${dwk}/${fa}.grib
+#cdo setzaxis,${dauxil}/myzaxis.txt_${lev} ${outnc1}/${var}_${dats}_${lev}mb_hh${hh}_mem${mem}_mth${mm}.nc_tmp \
+
+cdo setzaxis,${dauxil}/myzaxis.txt_${lev} ${dwkall}/${fa}.grib \
+         ${outnc1}/${var}_${dats}_${lev}mb_hh${hh}_mem${mem}_mth${mm}.nc
+#\rm -f ${outnc1}/${var}_${dats}_${lev}mb_hh${hh}_mem${mem}_mth${mm}.nc_tmp
+echo "MC: ###############################################"
+\rm -f ${dwkall}/${fa}.grib
+echo "MC: sters file=" ${dwkall}/${fa}.grib
+#ls -l ${dwkall}/${fa}.grib
+# done lev
+done
+
+if [ ${isol} -eq 0 ]  ; then
+cdo merge ${outnc1}/${var}_${dats}_10mb_hh${hh}_mem${mem}_mth${mm}.nc \
+          ${outnc1}/${var}_${dats}_50mb_hh${hh}_mem${mem}_mth${mm}.nc \
+          ${outnc1}/${var}_${dats}_100mb_hh${hh}_mem${mem}_mth${mm}.nc \
+          ${outnc1}/${var}_${dats}_200mb_hh${hh}_mem${mem}_mth${mm}.nc \
+          ${outnc1}/${var}_${dats}_300mb_hh${hh}_mem${mem}_mth${mm}.nc \
+          ${outnc1}/${var}_${dats}_400mb_hh${hh}_mem${mem}_mth${mm}.nc \
+          ${outnc1}/${var}_${dats}_500mb_hh${hh}_mem${mem}_mth${mm}.nc \
+          ${outnc1}/${var}_${dats}_700mb_hh${hh}_mem${mem}_mth${mm}.nc \
+          ${outnc1}/${var}_${dats}_850mb_hh${hh}_mem${mem}_mth${mm}.nc \
+          ${outnc1}/${var}_${dats}_925mb_hh${hh}_mem${mem}_mth${mm}.nc \
+          ${outnc1}/${var}_${dats}_1000mb_hh${hh}_mem${mem}_mth${mm}.nc \
+          ${outnc1}/${var}_${dats}_alllevs_hh${hh}_mem${mem}_mth${mm}.nc
+\rm ${outnc1}/${var}_${dats}_*mb_hh${hh}_mem${mem}_mth${mm}.nc
+else
+          cp ${outnc1}/${var}_${dats}_0mb_hh${hh}_mem${mem}_mth${mm}.nc \
+                ${outnc1}/${var}_${dats}_alllevs_hh${hh}_mem${mem}_mth${mm}.nc
+fi
+
+# done var loop
+done
+hh=`expr ${hh} + ${freqcpl} `
+# done hh loop
+done
+
+echo "Done merge levels, each hour, MEM=" ${mem} "month=" ${mm} "var=" ${var}
+
+for var in t q u v z stl1 ; do
+isol=0
+ngrd=1
+inam=0
+lev=0
+case ${var} in \
+  t) varo=air; varf=t;;
+  q) varo=qhum;inam=1;varf=r;;
+  z) varo=hgt;varf=z;;
+  u) varo=uwnd; ngrd=3;varf=u;;
+  v) varo=vwnd;varf=v;;
+  stl1) varo=sst; isol=1; lev=0; inam=1; varf=s;;
+esac
+echo "MEM=" ${mem}
+\rm ${outnc1}/list_${var}_mem${mem}_mth${mm}
+ls ${outnc1}/${var}_${dats}_alllevs_hh*_mem${mem}_mth${mm}.nc > \
+   ${outnc1}/list_${var}_mem${mem}_mth${mm}
+cdo mergetime $(cat ${outnc1}/list_${var}_mem${mem}_mth${mm}) \
+              ${out_fin2}/${varo}_${dats}_mem${mem}_mth${mm}.nc1
+
+grib_to_netcdf -o \
+              ${out_fin3}/${varf}_xxxx${mm}0100-xxxx${mmp1}0100.nc \
+              ${out_fin2}/${varo}_${dats}_mem${mem}_mth${mm}.nc1
+
+
+if [ ${isol} -eq 1 ] ; then
+cdo setzaxis,${dauxil}/myzaxis.txt_${lev} \
+    ${out_fin3}/${varf}_xxxx${mm}0100-xxxx${mmp1}0100.nc \
+    ${out_fin3}/${varf}_xxxx${mm}0100-xxxx${mmp1}0100.nc2
+\rm ${out_fin3}/${varf}_xxxx${mm}0100-xxxx${mmp1}0100.nc
+mv  ${out_fin3}/${varf}_xxxx${mm}0100-xxxx${mmp1}0100.nc2 \
+    ${out_fin3}/${varf}_xxxx${mm}0100-xxxx${mmp1}0100.nc
+fi
+
+############
+if [ ${inam} -eq 1 ] ; then
+cdo chname,${var},${varf} \
+               ${out_fin3}/${varf}_xxxx${mm}0100-xxxx${mmp1}0100.nc \
+               ${out_fin3}/${varf}_xxxx${mm}0100-xxxx${mmp1}0100.ncn
+\rm ${out_fin3}/${varf}_xxxx${mm}0100-xxxx${mmp1}0100.nc
+mv ${out_fin3}/${varf}_xxxx${mm}0100-xxxx${mmp1}0100.ncn \
+    ${out_fin3}/${varf}_xxxx${mm}0100-xxxx${mmp1}0100.nc
+fi
+
+
+
+
+# done var
+echo "Done, merge hours, MEM=" ${mem} "month=" ${mm} "var=" ${var}
+done
+
+echo "Done, MEM=" ${mem} "month=" ${mm}
+\rm -f ${dwk}/*_${dats}_*mb_hh*_mem${mem}_*.grib
+\rm ${outnc1}/*${mem}*nc ${outnc2}/*${mem}*nc
+
+# done mem
+done
+
+
+echo "##############################################"
+echo " done month=" ${mm}
+echo "##############################################"
+
+done
+
+\rm -f ${dwkall}/u*${nlon}.grib
+\rm -f ${dwkall}/v*${nlon}.grib
+\rm -f ${dwkall}/t*${nlon}.grib
+\rm -f ${dwkall}/z*${nlon}.grib
+\rm -f ${dwkall}/q*${nlon}.grib
+\rm -f ${dwkall}/stl1*${nlon}.grib
+
+###################################
+

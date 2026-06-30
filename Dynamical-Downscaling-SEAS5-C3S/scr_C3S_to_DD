@@ -1,0 +1,204 @@
+#!/bin/sh
+cdo='mypath'
+drun='mypath'
+d0=${d00}/GET_SEAS5
+
+mmc=`date --date ' 1 day ago' +%m`
+ddc=`date --date ' 1 day ago' +%d`
+yyc=`date --date ' 1 day ago' +%Y`
+
+iget=0
+######################################################################################
+## GET C3S data
+
+###################
+ystart=${yyc}
+mstart=${mmc}
+echo "start_yymm=" ${ystart}${mstart}
+
+mstart='05'
+mm1=`expr ${mstart} + 1 + 100 | cut -c2-3 `
+mm2=`expr ${mstart} + 2 + 100 | cut -c2-3 `
+mm3=`expr ${mstart} + 3 + 100 | cut -c2-3 `
+mm4=`expr ${mstart} + 4 + 100 | cut -c2-3 `
+mm5=`expr ${mstart} + 5 + 100 | cut -c2-3 `
+mm6=`expr ${mstart} + 6 + 100 | cut -c2-3 `
+mm7=`expr ${mstart} + 7 + 100 | cut -c2-3 `
+
+mfin=$mm6
+yfin=${ystart}
+if [ ${mfin} -gt 12 ] ; then
+mfin=`expr ${mfin} - 12 `
+yfin=` expr ${ystart} + 1 `
+fi
+echo "yfin=" ${yfin}
+########################################### 1. get CPL data from storrage
+
+mkdir -p ${d0}
+
+cd  ${d0}
+
+if [ ${iget} -ne 0 ] ; then
+ftp -n ....<< EOF
+       get R1L06010000${mm1}______1
+       get R1L06010000${mm2}______1
+       get R1L06010000${mm3}______1
+       get R1L06010000${mm4}______1
+       get R1L06010000${mm5}______1
+       get R1L06010000${mm6}______1
+       get R1L06010000${mm7}______1
+       ls -l
+quit
+EOF
+
+wait
+echo "OK : date CPL_SEZON aduse de pe server60 "
+
+fi
+############################################ 2. Prel CPL data 
+dprel=${d00}/SCR/Prep_DD_SEAS5
+
+### Prepare sst data and other local data ########
+##################################################
+cd ${dprel}
+mkdir -p ${dprel}
+
+\rm nam_dat
+cat << EOF >  nam_dat
+yys=${yyc}
+mms=${mmc}
+EOF
+
+\rm prep_merged+sst_OK_OPER_tmp
+cat nam_dat prep_merged+sst_OK_OPER_BASE > prep_merged+sst_OK_OPER_tmp
+./prep_merged+sst_OK_OPER_tmp 1>op1 2>op2 
+wait
+
+echo "OK : date CPL procesate , incep run pe mebri"
+
+########## 3. Loop on Members to make initial and LBC conditions
+##################################################################
+dirglob=$mypath/Cuplaje/GLOBEDAT/C3S/XXXX
+cd ${dirglob}
+
+for mem in 0 1 2 3 ; do
+\rm -f *nc
+ln -fs ${dirglob}/Mem_${mem}/*nc .
+done
+
+
+dirrun=$mypath
+cd ${dirrun}
+\rm -rf input_Mem_tmp_Base
+\rm -rf output_Mem_tmp_Base
+
+mkdir -p input_Mem_tmp_Base
+mkdir -p output_Mem_tmp_Base
+
+\rm -f mm_tmp
+cat << EOF > mm_tmp
+&globdatparam
+ ibdyfrq = 12,
+ ssttyp = 'OI_WK',
+ dattyp = 'EIXXX',
+ gdate1 = ${ystart}${mstart}01,
+ gdate2 = ${yfin}${mfin}01,
+ dirglob = 'input_Mem_tmp_Base',
+ inpglob = 'mypath'
+/
+ &restartparam
+ ifrest  = .false. ,
+ mdate0  = ${ystart}${mstart}01,
+ mdate1  = ${ystart}${mstart}01,
+ mdate2  = ${yfin}${mfin}01,
+ /
+EOF
+
+\rm domain_forecast_Mem${mem}_${yy}_Base${ystart}${mstart}01.in
+cat mm_tmp domain_forecast_Mem_tmp_BASE.in > \
+    domain_forecast_Mem${mem}_${yy}_Base${ystart}${mstart}01.in
+
+############# make Terrain files
+##########################################
+./bin/terrain \
+    domain_forecast_Mem${mem}_${yy}_Base${ystart}${mstart}01.in \
+    1>t1 2>t2 &
+sleep 1m
+########## make initial and LBC files 
+#########################################
+./bin/icbc \
+    domain_forecast_Mem${mem}_${yy}_Base${ystart}${mstart}01.in \
+    1>i1 2>i2 &
+sleep 6m
+
+\rm rr_tmp
+cat << EOF > rr_tmp
+#!/bin/sh
+mem=${mem}
+base_run=${ystart}${mstart}01
+EOF
+
+########### run DD per member 
+###################################
+\rm run.sh_base${ystart}${mstart}01
+cat rr_tmp run.sh_BASE > run.sh_base${ystart}${mstart}01
+
+chmod u+x run.sh_base${ystart}${mstart}01
+./run.sh_base${ystart}${mstart}01 1>o1 2>o2 &
+
+sleep 32h
+mkdir -p input_Mem_${mem}_Base_${ystart}${mstart}01
+mkdir -p output_Mem_${mem}_Base_${ystart}${mstart}01
+
+mv input_Mem_tmp_Base  \
+     input_Mem_${mem}_Base_${ystart}${mstart}01
+mv output_Mem_tmp_Base \
+     output_Mem_${mem}_Base_${ystart}${mstart}01
+
+echo "DONE, mem=" ${mem}
+echo '######## check END #####################'
+
+base_run=${ystart}${mstart}01
+\rm info_err1
+tail -n 1 LOG/log_Base_${base_run}_Mem_${mem} > info_err1
+char1=' RegCM V4 simulation successfully reached end'
+char2=$(cat info_err1)
+echo "$char1" >> LOG/log_${mem}
+echo "$char2" >> LOG/log_${mem}
+
+if [ "$char1" = "$char2"  ]
+then
+echo "check err1: OK" >> log/log_${mem}
+
+\rm info_err2
+ls -l LOG/err_Base_${base_run}_Mem_${mem}  | awk '{ print $5 }' > info_err2
+if [ "$(cat info_err2)" -eq "0" ]
+then
+echo "check err2: OK" >> LOG/log_${mem}
+
+else
+echo " ere2 - NOT zero!" >> LOG/log_${mem}
+exit
+fi
+else
+echo " err1 - NOT ENDED !" >> LOG/log_${mem}
+#echo " go to sleep 1h more" >> LOG/log_${mem}
+echo " go to sleep 2h more" >> LOG/log_${mem}
+#sleep 1h
+sleep 2h
+exit
+fi
+########################
+
+echo "OK, DONE member=" ${mem}
+
+done
+##################################################################
+###### post-proc ###############################################
+#mypath/Clim_prep/prep_clim_V2_Part1 
+#mypath/Clim_prep/prep_this_months_V2_Part2
+#
+# plot
+#mypath/SCR/Run_DD_prep/Post_Proc/Plot/scr_plot*
+##################################################################
+
