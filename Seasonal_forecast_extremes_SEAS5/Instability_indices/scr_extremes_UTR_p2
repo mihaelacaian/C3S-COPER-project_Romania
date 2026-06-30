@@ -1,0 +1,119 @@
+############
+
+yy1=2026
+mm1=05
+cdo='/mypath/utils/opt/cdo-install/cdo-1.9.3/src/cdo'
+####################
+m1=${mm1}
+m2=$(( ${m1} % 12 + 1 ))
+m3=$(( ${m1} % 12 + 2 ))
+m4=$(( ${m1} % 12 + 3 ))
+m5=$(( ${m1} % 12 + 4 ))
+m6=$(( ${m1} % 12 + 5 ))
+m7=$(( ${m1} % 12 + 6 ))
+echo "Months are: " ${m1} ${m2} ${m3} ${m4} ${m5} ${m6} ${m7}
+#######################################
+cdat=${yy1}${mm1}01
+sl='seas_base'
+############
+#
+dwk=/mypath3/OPER/C3S/Prel_CRON/Module1_Forecast/Forecast/Season/Extremes/Indices_Forecast/Instability/Forecast/Part2
+drez0=${dwk}/REZ/${yy1}${mm1}
+dplot=${dwk}/Plot
+#########################################################################
+#CTI index: Td(850)-T(500)
+fac=${drez0}/CTI/CTI_${sl}_${yy1}${mm1}_mem${mem}.nc
+#########################################
+# VTI index:  T(850)-T(500)
+fav=${drez0}/VTI/VTI_${sl}_${yy1}${mm1}_mem${mem}.nc
+###########################################
+# TTI index: T(850)+TD(850)-2*T(500)
+fat=${drez0}/TTI/TTI_${sl}_${yy1}${mm1}_mem${mem}.nc
+############################################################################
+# K index: T(850)+TD(850)-T(500) - (T(700)-TD(700))
+fak=${drez0}/K/K_${sl}_${yy1}${mm1}_mem${mem}.nc
+############################################################################
+###
+for ind in CTI VTI TTI K  ; do
+#for ind in CTI  ; do
+drez=${drez0}/${ind}
+dout2=${drez}/Extremes_utr
+dout2a=${drez}/Extremes_utr/Per_mth
+dout=${dout2}/tmp
+\rm -rf ${dout2}
+mkdir -p ${dout2} ${dout} ${dout2a}
+dout3=${drez0}/ENS_frq_extr_UTR
+mkdir -p ${dout3}
+
+
+
+for mem in {0..50} ; do
+echo "#########################"
+echo " mem=" ${mem}
+
+
+cd ${dout}
+\rm -f aa* 
+$cdo splitmon ${drez}/${ind}_${sl}_${yy1}${mm1}_mem${mem}.nc     aa_
+#$cdo splitmon ${drezm}/${ind}_${sl}_${yy1}${mm1}_mem${mem}_mm.nc  aam_
+###
+for m in ${m1} ${m2} ${m3} ${m4} ${m5} ${m6} ${m7} ; do
+cm=`expr ${m} + 100 | cut -c2-3 `
+\rm -f a b
+$cdo trend aa_${cm}.nc a b
+# superflue (mean should be zero), but do it:
+$cdo subtrend aa_${cm}.nc a b aa_${cm}.nc_utr
+$cdo monmean aa_${cm}.nc_utr aam_${cm}.nc_utr_mm
+#
+$cdo sub  aa_${cm}.nc_utr aam_${cm}.nc_utr_mm \
+          anom_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc
+$cdo timstd anom_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc \
+           timstd_anom_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc
+###
+for fac in "1.5" "1.75" ; do
+$cdo mulc,${fac} timstd_anom_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc \
+          ${fac}_timstd_anom_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc 
+$cdo sub anom_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc \
+          ${fac}_timstd_anom_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc \
+          diff_${fac}_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc1
+
+# consider only pozitive anomalies as Exteme instability  !
+$cdo setrtomiss,-1000.,0. diff_${fac}_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc1 \
+                   diff_${fac}_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc2
+$cdo setrtoc,0,1000.,1. diff_${fac}_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc2 \
+                    diff_${fac}_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc3
+$cdo timsum diff_${fac}_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc3 \
+            ${dout2a}/Nr_${fac}_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc
+\rm -f diff_${fac}_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc1 \
+       diff_${fac}_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc2 \
+       diff_${fac}_${ind}_mth${m}_${yy1}${mm1}_mem${mem}.nc3
+done
+done
+#
+
+for fac in "1.5" "1.75" ; do
+\rm -f list3_${ind}
+ls  ${dout2a}/Nr_${fac}_${ind}_mth*_${yy1}${mm1}_mem${mem}.nc > list3_${ind} 
+$cdo mergetime $(cat list3_${ind}) \
+         ${dout2}/Nr_${fac}_${ind}_season_${yy1}${mm1}_mem${mem}.nc
+done
+echo "done, member=" ${mem}
+done
+for fac in "1.5" "1.75" ; do
+\rm -f list4_${ind}
+ls  ${dout2}/Nr_${fac}_${ind}_season_${yy1}${mm1}_mem*.nc > list4_${ind} 
+$cdo ensmean $(cat list4_${ind}) ${dout3}/ENS_Nr_${fac}_${ind}_season_${yy1}${mm1}.nc
+done
+#
+echo "############################"
+echo "DONE, ind=" ${ind}
+echo "output in: " ${drez0}
+done
+
+############################################################################
+cd ${dplot}
+$gr -bpc  "scr_plot_izo_Contour_UTR_multi.gs 6 3 ${cdat4} ${mm1} "
+wait
+$gr -blc  "scr_plot_izo_Contour_UTR.gs 1 1  ${cdat4} ${mm1} "
+wait
+############################################################################
