@@ -1,0 +1,254 @@
+#!/bin/sh
+base=202606
+yy1=2026
+mm1=6
+var=mx2t24
+plvar='var51'
+pyvar='maximum_2m_temperature_in_the_last_24_hours'
+thres=30
+th1=30
+th2=35
+th3=35
+th4=30
+th5=25
+th6=20
+th7=15
+lon0=26.1
+lat0=44.4
+############################################
+############################################
+# !/bin/sh
+base=202606
+#var=mx2t24
+#plvar='var51'
+#txhw=30
+#th1= ; .. th7=
+#lon0=26.1
+#lat0=44.4
+
+############################################
+yy1=`expr ${base} | cut -c1-4 `
+mm1=`expr ${base} | cut -c5-6 `
+dd1='01'
+
+dat6=${yy1}${mm1}
+dat8=${yy1}${mm1}${dd1}
+
+mm1p1=$(date -d "${dat8} +1 month" +%m)
+mm1p2=$(date -d "${dat8} +2 month" +%m)
+mm1p3=$(date -d "${dat8} +3 month" +%m)
+mm1p4=$(date -d "${dat8} +4 month" +%m)
+mm1p5=$(date -d "${dat8} +5 month" +%m)
+mm1p6=$(date -d "${dat8} +6 month" +%m)
+
+
+echo "months=" ${mm1} ${mm1p1} ${mm1p2} ${mm1p3} ${mm1p4} ${mm1p5} ${mm1p6}
+
+#sdat=`expr ${base} \* 100 + 1 `
+sdat=${dat8}
+echo "base, sdat=" $base $sdat 
+
+d0=/mypath3/OPER/C3S/Prel_CRON/Module1_Forecast/Forecast/Year/Extremes/Indices_Forecast_Year/Heat_waves/Forecast
+dd=${d0}/GET_data/DATA/Base_${base}
+ddt=${dd}/tmp
+#rm -rf ${ddt}
+mkdir -p ${ddt}
+
+daux=${d0}/SCR/Auxil
+dpl=${d0}/SCR/Plot
+dprint11=${dpl}/PRINT_IZO_same_th/${base}01
+dprint12=${dpl}/PRINT_IZO_mth_th/${base}01
+dprint21=${dpl}/PRINT_2d_same_th/${base}01
+dprint22=${dpl}/PRINT_2d_mth_th/${base}01
+#dweb=/mypath3/OPER/C3S/WEB_Platform/M1_FORECAST/Plots/Forecast/Season/Extremes/Indices_Forecast/Heat-waves
+dweb=/mypath3/OPER/C3S/WEB_Platform/M1_FORECAST/Year/Sectorial-indicators/Extremes/HEAT_waves/
+
+
+mkdir -p ${dprint11} ${dprint12} ${dprint21} ${dprint22}
+##################################################
+
+cdo='/mypath/utils/opt/cdo-install/cdo-1.9.3/src/cdo'
+pyhton='/mypath/anaconda3/bin/python'
+gr='/mypath/utils/grads-2.0.a7.1/bin/grads'
+#############################################
+fa=yearly_Tx_daily_13m_base${base}.grib
+
+############ 1. PREL data ############
+cd ${dd}
+
+#\rm -f *mem*
+cp ${daux}/rule_sys5 .
+grib_filter  rule_sys5 ${dd}/${fa}
+wait
+
+cd ${ddt}
+
+for mem in {0..50} ; do
+fam=${var}_sfc_fc_${sdat}_mem${mem}
+$cdo subc,273.15 ${dd}/${fam}.grib ${ddt}/${fam}_C
+wait
+$cdo -f nc copy ${ddt}/${fam}_C ${ddt}/${fam}_C.nc
+wait
+#
+$cdo subc,${thres} ${fam}_C.nc  ${fam}_same_th
+wait
+
+th1n=20;th2n=20;th3n=20;th4n=20;th5n=20;th6n=20; th7n=20
+im=0
+for mon in ${mm1} ${mm1p1} ${mm1p2} ${mm1p3} ${mm1p4} ${mm1p5} ${mm1p6} ; do
+case ${mon} in \
+  01) th=15;; 
+  02) th=15;; 
+  03) th=15;; 
+  04) th=20;; 
+  05) th=25;; 
+  06) th=30;; 
+  07) th=35;; 
+  08) th=35;; 
+  09) th=30;; 
+  10) th=25;; 
+  11) th=20;; 
+  12) th=15;; 
+esac
+im=`expr ${im} + 1 `
+#
+echo "IM=" ${im} "TH=" ${th}
+#
+if [ ${im} -eq 1 ] ; then
+   th1n=${th}
+   if [ ${th1n} -ne ${th1} ] ; then
+     echo "ERROR in computing Thresholds th1" 
+     exit    
+   fi
+elif  [ ${im} -eq 2 ] ; then  
+   th2n=${th}
+   if [ ${th2n} -ne ${th2} ] ; then
+     echo "ERROR in computing Thresholds th2" 
+     exit    
+   fi
+elif  [ ${im} -eq 3 ] ; then  
+   th3n=${th}
+   if [ ${th3n} -ne ${th3} ] ; then
+     echo "ERROR in computing Thresholds th3" 
+     exit    
+   fi
+elif  [ ${im} -eq 4 ] ; then  
+   th4n=${th}
+   if [ ${th4n} -ne ${th4} ] ; then
+     echo "ERROR in computing Thresholds th4" 
+     exit    
+   fi
+elif  [ ${im} -eq 5 ] ; then  
+   th5n=${th}
+   if [ ${th5n} -ne ${th5} ] ; then
+     echo "ERROR in computing Thresholds th5" 
+     exit    
+   fi
+elif  [ ${im} -eq 6 ] ; then  
+   th6n=${th}
+   if [ ${th6n} -ne ${th6} ] ; then
+     echo "ERROR in computing Thresholds th6" 
+     exit    
+   fi
+elif  [ ${im} -eq 7 ] ; then  
+   th7n=${th}
+   if [ ${th7n} -ne ${th7} ] ; then
+     echo "ERROR in computing Thresholds th7" 
+     exit    
+   fi
+fi
+#
+echo "MONTH=" ${mon} "TH=" ${th} "IM=" ${im}
+echo " Chech thresholds, new are:" ${th1n} ${th2n} ${th3n} ${th4n} ${th5n} ${th6n} ${th7n} 
+echo " Chech thresholds, transmitted are:" ${th1} ${th2} ${th3} ${th4} ${th5} ${th6} ${th7}
+
+###############################
+
+$cdo selmon,${mon} ${fam}_C.nc ${fam}_C_tmp${mon}
+$cdo subc,${th} ${fam}_C_tmp${mon} ${fam}_mth_th_m${mon}
+wait
+done
+#
+cdo mergetime ${fam}_mth_th_m${mm1} ${fam}_mth_th_m${mm1p1} ${fam}_mth_th_m${mm1p2} \
+              ${fam}_mth_th_m${mm1p3} ${fam}_mth_th_m${mm1p4} ${fam}_mth_th_m${mm1p5} ${fam}_mth_th_m${mm1p6} \
+              ${fam}_mth_th
+wait
+#
+for suf in 'mth_th' 'same_th' ; do
+$cdo setrtomiss,-1000,0. ${fam}_${suf} ${fam}_degs_${suf}
+wait
+$cdo setrtoc,0.,1000.,1. ${fam}_degs_${suf} ${fam}_cases_${suf}
+wait
+$cdo monsum ${fam}_cases_${suf} ${fam}_nrdays_monthly_${suf}_1
+wait
+$cdo monsum ${fam}_degs_${suf}  ${fam}_deg_sum_monthly_${suf}_1
+wait
+$cdo setday,01 -settime,00:00:00 ${fam}_nrdays_monthly_${suf}_1 ${fam}_nrdays_monthly_${suf}.nc1
+$cdo setmisstoc,0. ${fam}_nrdays_monthly_${suf}.nc1 ${fam}_nrdays_monthly_${suf}.nc
+wait
+$cdo setday,01 -settime,00:00:00 ${fam}_deg_sum_monthly_${suf}_1 ${fam}_deg_sum_monthly_${suf}.nc1
+$cdo setmisstoc,0. ${fam}_deg_sum_monthly_${suf}.nc1 ${fam}_deg_sum_monthly_${suf}.nc
+wait
+\rm -f ${fam}_bias ${fam}_degs_${suf} ${fam}_cases_${suf}
+\rm -f ${fam}_nrdays_monthly_${suf}_1 ${fam}_deg_sum_monthly_${suf}_1
+\rm -f ${fam}_deg_sum_monthly_${suf}.nc1
+\rm -f ${fam}_nrdays_monthly_${suf}.nc1
+done
+#
+echo "done, member=" ${mem}
+done
+
+for suf in 'mth_th' 'same_th' ; do
+\rm -f l_nr l_deg ENS*_${suf}.nc
+ls *nrdays*${suf}* > l_nr_${suf}
+ls *deg_sum*${suf}* > l_deg_${suf}
+\rm -f ENS_${var}_sfc_fc_${sdat}_nrdays_monthly_${suf}.nc
+\rm -f ENS_${var}_sfc_fc_${sdat}_deg_sum_monthly_${suf}.nc
+$cdo ensmean $(cat l_nr_${suf}) ENS_${var}_sfc_fc_${sdat}_nrdays_monthly_${suf}.nc
+wait
+$cdo ensmean $(cat l_deg_${suf}) ENS_${var}_sfc_fc_${sdat}_deg_sum_monthly_${suf}.nc
+wait
+done
+
+############ 2. PLOT data ############
+#cd ${dt}
+cd ${dpl}
+
+\rm -f nam_plot scr_plot_IZO_Heat_Wave_mth_th scr_plot_IZO_Heat_Wave_same_th  scr_plot_2d_Heat_Wave
+cat << EOF > ${dpl}/nam_plot
+dat6=${base}
+m0=${mm1}
+y0=${yy1}
+var=${var}
+plvar=${plvar}
+th=${thres}
+th1=${th1}
+th2=${th2}
+th3=${th3}
+th4=${th4}
+th5=${th5}
+th6=${th6}
+th7=${th7}
+lon0=${lon0}
+lat0=${lat0}
+EOF
+
+cat nam_plot ${daux}/scr_plot_IZO_Heat_Wave_mth_th_base  > scr_plot_IZO_Heat_Wave_mth_th
+cat nam_plot ${daux}/scr_plot_IZO_Heat_Wave_same_th_base  > scr_plot_IZO_Heat_Wave_same_th
+cat nam_plot ${daux}/scr_plot_2d_Heat_Wave_same_th_base   > scr_plot_2d_Heat_Wave_same_th
+cat nam_plot ${daux}/scr_plot_2d_Heat_Wave_mth_th_base   > scr_plot_2d_Heat_Wave_mth_th
+
+${gr} -blc scr_plot_IZO_Heat_Wave_same_th
+${gr} -blc scr_plot_IZO_Heat_Wave_mth_th
+${gr} -blc scr_plot_2d_Heat_Wave_mth_th
+${gr} -blc scr_plot_2d_Heat_Wave_same_th
+wait
+
+cp ${dprint11}/*jpg ${dweb} 
+cp ${dprint12}/*jpg ${dweb} 
+cp ${dprint21}/*jpg ${dweb} 
+cp ${dprint22}/*jpg ${dweb} 
+######################################################
+######################################################
+######################################################
+
